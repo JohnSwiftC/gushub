@@ -60,7 +60,8 @@ fn main() {
     Reverse Shell Manager\n\
     Use 'clients' to show connected clients\n\
     Use 'mainmenu' to exit an interactive shell\n\
-    Input their number to interact\n\
+    Use 'close [id]' to remove a shell from the clients list\n\
+    Input a shell number to interact\n\
     ");
 
     loop {
@@ -89,6 +90,26 @@ fn main() {
             }
 
             continue;
+        }
+
+        // Close shell command
+        // Please clean this up later, it looks horrible
+        let mut command_iter = command.trim().split_whitespace();
+        match command_iter.next() {
+            Some(s) => {
+                // Now check for command
+                if s == "close" {
+                    if let Some(o) = command_iter.next() {
+                        if let Ok(n) = o.parse::<usize>() {
+                            // of course vec remove has to panic on a bad index, hold on
+                            if n >= 1 && n <= clients.len() {
+                                let _ = clients.remove(n - 1); // Throw away the result, we dont need it.
+                            }
+                        }
+                    }
+                }
+            },
+            None => ()
         }
 
         // If the command was a number, drop 
