@@ -16,8 +16,8 @@ This is a CLI tool that takes the host port as an argument. Ex. `gushub.exe 4444
 
 `clients` - Show a connected clients list.
 `mainmenu` - Return to the session manager main menu when managing a shell session.
-`close \<id\>` - Close a remote shell session when in the main menu.
-`\<shell id\>` - Start managing a shell session.
+`close <id>` - Close a remote shell session when in the main menu.
+`<shell id>` - Start managing a shell session.
 
 **A note on managing dead shells** - If you attempt to send a message to a session and it closes to the main menu, that session has died on the other end.
 run the `close` command to clear it from your client list.
@@ -26,4 +26,4 @@ run the `close` command to clear it from your client list.
 
 Like any Rust Cargo project, use `cargo build --release` to build. The executable will be found in `/target/release`.
 
-> Technically, you could also use `cargo run -- \<port\>` to run without building a binary.
+> Technically, you could also use `cargo run -- <port>` to run without building a binary.
