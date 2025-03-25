@@ -2,7 +2,7 @@
 
 GusHub is a simple reverse shell session manager with no special requirements. GusHub functions in the same way as a netcat listener with managed sessions.
 
-This works with any reverse shell, however I developed the tool to manage my (gus)[https://github.com/JohnSwiftC/gus] sessions. Have fun!
+This works with any reverse shell, however I developed the tool to manage my [gus](https://github.com/JohnSwiftC/gus) sessions. Have fun!
 
 # Features
 
