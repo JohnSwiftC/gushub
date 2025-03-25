@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 const HOST: &str = "0.0.0.0";
 
 
+
 #[derive(Debug)]
 struct Client {
     stream: TcpStream,
@@ -43,15 +44,23 @@ impl Client {
     pub fn try_split(&self) -> Result<(TcpStream, TcpStream), std::io::Error> {
         Ok((self.stream.try_clone()?, self.stream.try_clone()?))
     }
+    pub fn stream(&self) -> &TcpStream {
+        &self.stream
+    }
 }
 
 fn main() {
     let mut clients = Vec::<Client>::new();
     let client_buffer = Arc::new(Mutex::new(Vec::<Client>::new()));
 
+    // Get port argument
+    let mut arg_iter = std::env::args();
+    let _ = arg_iter.next(); // Throw away name of binary arg
+    let port = arg_iter.next().unwrap_or_else(|| panic!("No port specified"));
+
     let cbclone = Arc::clone(&client_buffer);
     thread::spawn(move || {
-        get_new_connections(cbclone);
+        get_new_connections(cbclone, port);
     });
 
     print!("\
@@ -102,7 +111,8 @@ fn main() {
                         if let Ok(n) = o.parse::<usize>() {
                             // of course vec remove has to panic on a bad index, hold on
                             if n >= 1 && n <= clients.len() {
-                                let _ = clients.remove(n - 1); // Throw away the result, we dont need it.
+                                let client = clients.remove(n - 1);
+                                let _ = client.stream().shutdown(std::net::Shutdown::Both);
                             }
                         }
                     }
@@ -132,8 +142,8 @@ fn handle_connection(client: &Client) -> Result<(), std::io::Error> {
         loop {
             let mut buf = vec![0; 1024];
             let n = stdin().read(&mut buf).unwrap();
-            if String::from_utf8_lossy(&buf[..n]).trim() == "mainmenu" {break;} // Figure this out later
-            writer.write_all(&buf[..n]).unwrap();
+            if String::from_utf8_lossy(&buf[..n]).trim() == "mainmenu" { break; } // Figure this out later
+            if let Err(_) = writer.write_all(&buf[..n]) { break; }
         }
     });
 
@@ -154,14 +164,13 @@ fn handle_connection(client: &Client) -> Result<(), std::io::Error> {
     });
 
     writer_t.join().unwrap();
-    sender.send(1).unwrap();
+    let _ = sender.send(1); // There are some cases where this will throw an error because the reciever is dead.
+                            // If the reciever is dead, we know the thread is dead anyways so it has done its job.
 
     Ok(())
 }
 
-fn get_new_connections(client_buffer: Arc<Mutex<Vec<Client>>>) {
-
-    let port = std::env::args().next().expect("No host port specified");
+fn get_new_connections(client_buffer: Arc<Mutex<Vec<Client>>>, port: String) {
 
     let listener = TcpListener::bind(format!("{}:{}", HOST, port)).unwrap();
 
