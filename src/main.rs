@@ -5,7 +5,6 @@ use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 
 const HOST: &str = "0.0.0.0";
-const PORT: u32 = 4444;
 
 
 #[derive(Debug)]
@@ -161,7 +160,10 @@ fn handle_connection(client: &Client) -> Result<(), std::io::Error> {
 }
 
 fn get_new_connections(client_buffer: Arc<Mutex<Vec<Client>>>) {
-    let listener = TcpListener::bind(format!("{}:{}", HOST, PORT)).unwrap();
+
+    let port = std::env::args().next().expect("No host port specified");
+
+    let listener = TcpListener::bind(format!("{}:{}", HOST, port)).unwrap();
 
     loop {
         let (stream, peer_addr) = listener.accept().unwrap();
